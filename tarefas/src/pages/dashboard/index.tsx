@@ -6,14 +6,17 @@ import { TextArea } from "@/components/textarea";
 import { CheckBox } from "@/components/checkbox";
 import { FiShare2 } from "react-icons/fi";
 import { FaTrash } from "react-icons/fa";
-import { ChangeEvent, FormEvent, useState } from "react";
-import { addDoc, collection } from "firebase/firestore";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { addDoc, collection, query, orderBy, where, onSnapshot, DocumentData, CollectionReference } from "firebase/firestore";
 import { db } from "@/services/firebase";
 
 
-interface Task {
-    text: string,
-    public: boolean,
+interface Task extends DocumentData {
+    id: string | undefined,
+    text: string | undefined,
+    public: boolean | undefined,
+    createdAt: Date | undefined,
+    user: string | undefined
 }
 
 interface DashboardProps {
@@ -23,7 +26,29 @@ interface DashboardProps {
 }
 
 export default function Dashboard(props: DashboardProps) {
-    const [task, setTask] = useState<Task>({text: "", public: false});
+    const [task, setTask] = useState<Task>({} as Task);
+    const [tasks, setTasks] = useState<Array<Task>>([]);
+    useEffect(() => {
+        const loadTasks = async () => {
+            const task: CollectionReference<Task, Task> = collection(db, "task") as CollectionReference<Task, Task>;
+            const q = query<Task, Task>(task,
+                orderBy("createdAt", "desc"),
+                where("user", "==", props.user.email)
+                );
+            onSnapshot(q, (snapshot) => {
+                const temp: Array<Task> = [];
+                snapshot.forEach((doc) => {
+                    temp.push({
+                        ... doc.data()
+                    })
+                })
+                setTasks(temp)
+            })
+        }
+
+        loadTasks();
+
+    }, [props.user.email])
 
     const onTextChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
         setTask({
@@ -51,7 +76,7 @@ export default function Dashboard(props: DashboardProps) {
                     createdAt: new Date(),
                     user: props.user?.email
                 })
-                setTask({text: "", public: false});
+                setTask({} as Task);
             } catch(err) {
                 console.log(err)
             }
@@ -91,23 +116,27 @@ export default function Dashboard(props: DashboardProps) {
                 <section className={styles.taskContainer}>
                     <h1>Minhas tarefas</h1>
 
-                    <article className={styles.task}>
-                        <div className={styles.tagContainer}>
-                            <label className={styles.tag}>Público</label>
-                            <button className={styles.shareButton}>
-                                <FiShare2
-                                    size={22}
-                                    color="#3183ff"
-                                />
-                            </button>
-                        </div>
-                        <div className={styles.taskContent}>
-                            <p>Minha primeira tarefa de exemplo show demais</p>
-                            <button className={styles.trashButton}>
-                                <FaTrash size={24} color="#ea3140"/>
-                            </button>
-                        </div>
-                    </article>
+                    { tasks.map((task) => (
+                        <article key={task.id} className={styles.task}>
+                            { task.public && (
+                                <div className={styles.tagContainer}>
+                                    <label className={styles.tag}>Público</label>
+                                    <button className={styles.shareButton}>
+                                        <FiShare2
+                                            size={22}
+                                            color="#3183ff"
+                                        />
+                                    </button>
+                                </div>
+                            )}
+                            <div className={styles.taskContent}>
+                                <p>{task.text}</p>
+                                <button className={styles.trashButton}>
+                                    <FaTrash size={24} color="#ea3140"/>
+                                </button>
+                            </div>
+                        </article>
+                    ))}
                 </section>
             </main>
         </div>

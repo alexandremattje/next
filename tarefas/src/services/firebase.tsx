@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore} from "firebase/firestore";
-import { stringify } from "querystring";
 
 // const firebaseConfig = {
 //   apiKey: process.env.FB_API_KEY,
