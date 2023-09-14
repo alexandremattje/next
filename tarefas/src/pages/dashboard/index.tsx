@@ -6,9 +6,10 @@ import { TextArea } from "@/components/textarea";
 import { CheckBox } from "@/components/checkbox";
 import { FiShare2 } from "react-icons/fi";
 import { FaTrash } from "react-icons/fa";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { addDoc, collection, query, orderBy, where, onSnapshot, DocumentData, CollectionReference } from "firebase/firestore";
+import { ChangeEvent, FormEvent, MouseEventHandler, useEffect, useState } from "react";
+import { addDoc, collection, query, orderBy, where, onSnapshot, DocumentData, CollectionReference, doc, deleteDoc } from "firebase/firestore";
 import { db } from "@/services/firebase";
+import Link from "next/link";
 
 
 interface Task extends DocumentData {
@@ -39,7 +40,8 @@ export default function Dashboard(props: DashboardProps) {
                 const temp: Array<Task> = [];
                 snapshot.forEach((doc) => {
                     temp.push({
-                        ... doc.data()
+                        ... doc.data(),
+                        id: doc.id,
                     })
                 })
                 setTasks(temp)
@@ -85,6 +87,19 @@ export default function Dashboard(props: DashboardProps) {
         }
     }
 
+    const onShareClick = async (id: string | undefined) => {
+        await navigator.clipboard.writeText(
+            `${process.env.NEXT_PUBLIC_URL}/task/${id}`
+        )
+    }
+
+    const onDeleteClick = async (id: string | undefined) => {
+        if (id) {
+            const docRef = doc(db, "task", id);
+            await deleteDoc(docRef);
+        }
+    }
+
     return (
         <div className={styles.container}>
             <Head>
@@ -121,7 +136,7 @@ export default function Dashboard(props: DashboardProps) {
                             { task.public && (
                                 <div className={styles.tagContainer}>
                                     <label className={styles.tag}>Público</label>
-                                    <button className={styles.shareButton}>
+                                    <button className={styles.shareButton} onClick={() => onShareClick(task.id)}>
                                         <FiShare2
                                             size={22}
                                             color="#3183ff"
@@ -130,8 +145,14 @@ export default function Dashboard(props: DashboardProps) {
                                 </div>
                             )}
                             <div className={styles.taskContent}>
-                                <p>{task.text}</p>
-                                <button className={styles.trashButton}>
+                                {task.public ? (
+                                    <Link href={`/task/${task.id}`}>
+                                        <p>{task.text}</p>
+                                    </Link>
+                                ) : (
+                                    <p>{task.text}</p>
+                                )}
+                                <button className={styles.trashButton} onClick={() => onDeleteClick(task.id)}>
                                     <FaTrash size={24} color="#ea3140"/>
                                 </button>
                             </div>
