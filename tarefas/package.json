@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@types/react-dom": "18.2.7",
+    "dotenv": "^16.3.1",
+    "firebase": "^10.3.1",
     "next": "latest",
     "next-auth": "latest",
     "react": "^18.2.0",

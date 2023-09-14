@@ -6,8 +6,60 @@ import { TextArea } from "@/components/textarea";
 import { CheckBox } from "@/components/checkbox";
 import { FiShare2 } from "react-icons/fi";
 import { FaTrash } from "react-icons/fa";
+import { ChangeEvent, FormEvent, useState } from "react";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "@/services/firebase";
 
-export default function Dashboard() {
+
+interface Task {
+    text: string,
+    public: boolean,
+}
+
+interface DashboardProps {
+    user: {
+        email: string
+    }
+}
+
+export default function Dashboard(props: DashboardProps) {
+    const [task, setTask] = useState<Task>({text: "", public: false});
+
+    const onTextChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+        setTask({
+            ...task,
+            text: event.target.value
+        })
+    }
+
+    const onCheckBoxChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setTask({
+            ...task,
+            public: event.target.checked
+        })
+    }
+
+    const onSubmitForm = async (event: FormEvent) => {
+        event.preventDefault();
+
+        if (task.text === "") {
+            return
+        } else {
+            try {
+                await addDoc(collection(db, "task"), {
+                    ...task,
+                    createdAt: new Date(),
+                    user: props.user?.email
+                })
+                setTask({text: "", public: false});
+            } catch(err) {
+                console.log(err)
+            }
+
+
+        }
+    }
+
     return (
         <div className={styles.container}>
             <Head>
@@ -18,11 +70,17 @@ export default function Dashboard() {
                 <section className={styles.content}>
                     <div className={styles.contentForm}>
                         <h1 className={styles.title}>Qual a sua tarefa?</h1>
-                        <form>
+                        <form onSubmit={onSubmitForm}>
                             <TextArea 
                                 placeholder="Digite qual sua tarefa?"
+                                value={task.text}
+                                onChange={onTextChange}
                             />
-                            <CheckBox label="Deixar tarefa pública?" />
+                            <CheckBox 
+                                label="Deixar tarefa pública?"
+                                checked={task.public}
+                                onChange={onCheckBoxChange}
+                            />
                             <button className={styles.button} type="submit">
                                 Registrar
                             </button>
@@ -70,7 +128,9 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
 
     return {
         props: {
-
+            user: {
+                email: session?.user?.email
+            }
         }
     }
 }
