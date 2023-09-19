@@ -10,15 +10,7 @@ import { ChangeEvent, FormEvent, MouseEventHandler, useEffect, useState } from "
 import { addDoc, collection, query, orderBy, where, onSnapshot, DocumentData, CollectionReference, doc, deleteDoc } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import Link from "next/link";
-
-
-interface Task extends DocumentData {
-    id: string | undefined,
-    text: string | undefined,
-    public: boolean | undefined,
-    createdAt: Date | undefined,
-    user: string | undefined
-}
+import { Task, TaskDB } from "@/models/task";
 
 interface DashboardProps {
     user: {
@@ -31,8 +23,8 @@ export default function Dashboard(props: DashboardProps) {
     const [tasks, setTasks] = useState<Array<Task>>([]);
     useEffect(() => {
         const loadTasks = async () => {
-            const task: CollectionReference<Task, Task> = collection(db, "task") as CollectionReference<Task, Task>;
-            const q = query<Task, Task>(task,
+            const task: CollectionReference<Task, TaskDB> = collection(db, "task") as CollectionReference<Task, TaskDB>;
+            const q = query<Task, TaskDB>(task,
                 orderBy("createdAt", "desc"),
                 where("user", "==", props.user.email)
                 );
