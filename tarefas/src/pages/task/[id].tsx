@@ -12,12 +12,14 @@ import {
     DocumentReference,
     addDoc,
     CollectionReference,
-    FirestoreDataConverter
+    FirestoreDataConverter,
+    deleteDoc
 } from "firebase/firestore";
 import { Comment, CommentDB, Task, TaskDB } from "@/models/task";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { TextArea } from "@/components/textarea";
+import { FaTrash } from "react-icons/fa";
 
 
 interface TaskProps {
@@ -42,15 +44,31 @@ export default function Task(props: TaskProps) {
         if (!session?.user?.email || !session?.user?.name) {
             return
         }
+        const commentToSave: Comment = {
+            comment,
+            createdAt: new Date().toLocaleDateString(),
+            user: session?.user?.email,
+            name: session?.user?.name,
+            taskId: props.task.id
+        }
         try {
+
             const docRef = await addDoc(collection(db, "comments"), {
-                comment,
+                ...commentToSave,
                 createdAt: new Date(),
-                user: session?.user?.email,
-                name: session?.user?.name,
-                taskId: props.task.id
             });
             setComment("")
+            setComments([...comments, commentToSave]);
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const deleteComment = async (id: string) => {
+        try {
+            const docRef = doc(db, "comments", id);
+            await deleteDoc(docRef)
+            setComments(comments.filter((item) => item.id !== id));
         } catch (error) {
             console.log(error)
         }
@@ -86,11 +104,26 @@ export default function Task(props: TaskProps) {
                     </button>
                 </form>
             </section>
+            <section className={styles.commentsContainer}>
+                <h2>Todos os comentários</h2>
+                {comments.length === 0 && (
+                    <span>Nenhum comentário foi encontrado</span>
+                )}
             {comments.map((item) => (
                <article key={item.id} className={styles.comment}>
+                    <div className={styles.headComment}>
+                        <label className={styles.commentsLabel}>{item.name}
+                        </label>
+                        {item.user === session?.user?.email && (
+                        <button className={styles.buttonTrash} onClick={() => deleteComment(item.id)}>
+                            <FaTrash size={18} color="#EA3140" />
+                        </button>                         
+                        )}
+                    </div>
                     <p>{item.comment}</p>
                </article>
             ))}
+            </section>
         </div>
     )
 }
